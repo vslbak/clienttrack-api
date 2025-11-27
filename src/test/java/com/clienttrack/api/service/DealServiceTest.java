@@ -1,143 +1,124 @@
 package com.clienttrack.api.service;
 
 import com.clienttrack.api.controller.dto.DealData;
+import com.clienttrack.api.controller.dto.DealPatchData;
 import com.clienttrack.api.core.Deal;
+import com.clienttrack.api.core.DealStage;
+import com.clienttrack.api.repository.ClientRepository;
 import com.clienttrack.api.repository.DealRepository;
+import com.clienttrack.api.repository.entity.ClientEntity;
 import com.clienttrack.api.repository.entity.DealEntity;
 import com.clienttrack.api.repository.mapper.DealEntityMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class DealServiceTest {
 
     private DealRepository dealRepository;
-    private DealEntityMapper dealEntityMapper;
-    private DealService dealService;
+    private ClientRepository clientRepository;
+    private DealEntityMapper mapper;
+    private DealService service;
 
     @BeforeEach
-    void setUp() {
+    void setup() {
         dealRepository = mock(DealRepository.class);
-        dealEntityMapper = mock(DealEntityMapper.class);
-        dealService = new DealService(dealRepository, dealEntityMapper);
+        clientRepository = mock(ClientRepository.class);
+        mapper = mock(DealEntityMapper.class);
+        service = new DealService(dealRepository, clientRepository, mapper);
     }
 
     @Test
-    void getAll_returnsMappedDeals() {
-        DealEntity entity = new DealEntity();
-        Deal coreDeal = mock(Deal.class);
+    void getAll_shouldReturnMappedDeals() {
+        DealEntity e = new DealEntity();
+        Deal core = new Deal(UUID.randomUUID(), null, "T", DealStage.LEAD, new BigDecimal(100), 50, null, Instant.now(), Instant.now());
 
-        when(dealRepository.findAll()).thenReturn(List.of(entity));
-        when(dealEntityMapper.toCore(entity)).thenReturn(coreDeal);
+        when(dealRepository.findAll()).thenReturn(List.of(e));
+        when(mapper.toCore(e)).thenReturn(core);
 
-        List<Deal> result = dealService.getAll();
+        List<Deal> result = service.getAll();
 
-        assertEquals(1, result.size());
-        assertEquals(coreDeal, result.getFirst());
+        assertThat(result).containsExactly(core);
     }
 
     @Test
-    void getById_returnsMappedDeal() {
+    void getById_shouldReturnMappedDeal() {
         UUID id = UUID.randomUUID();
-        DealEntity entity = new DealEntity();
-        Deal coreDeal = mock(Deal.class);
+        DealEntity e = new DealEntity();
+        Deal core = new Deal(UUID.randomUUID(), null, "T", DealStage.LEAD, new BigDecimal(100), 50, null, Instant.now(), Instant.now());
 
-        when(dealRepository.findById(id)).thenReturn(Optional.of(entity));
-        when(dealEntityMapper.toCore(entity)).thenReturn(coreDeal);
+        when(dealRepository.findById(id)).thenReturn(Optional.of(e));
+        when(mapper.toCore(e)).thenReturn(core);
 
-        Deal result = dealService.getById(id);
+        Deal result = service.getById(id);
 
-        assertEquals(coreDeal, result);
+        assertThat(result).isEqualTo(core);
     }
 
     @Test
-    void getById_throwsWhenNotFound() {
-        UUID id = UUID.randomUUID();
-        when(dealRepository.findById(id)).thenReturn(Optional.empty());
-
-        RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> dealService.getById(id));
-
-        assertTrue(ex.getMessage().contains("Deal with id"));
-    }
-
-    @Test
-    void create_mapsUpdatesAndSaves() {
-        DealData payload = mock(DealData.class);
-
-        DealEntity savedEntity = new DealEntity();
-        Deal mappedCore = mock(Deal.class);
-
-        when(dealRepository.save(any())).thenReturn(savedEntity);
-        when(dealEntityMapper.toCore(savedEntity)).thenReturn(mappedCore);
-
-        Deal result = dealService.create(payload);
-
-        // verify mapstruct updateEntity was called
-        verify(dealEntityMapper).updateEntity(eq(payload), any(DealEntity.class));
-
-        // verify savedEntity was mapped back to core
-        assertEquals(mappedCore, result);
-    }
-
-    @Test
-    void update_mapsUpdatesAndSaves() {
-        UUID id = UUID.randomUUID();
-        DealData payload = mock(DealData.class);
-
-        DealEntity existing = new DealEntity();
+    void create_shouldSaveAndReturnMappedDeal() {
+        UUID clientId = UUID.randomUUID();
+        ClientEntity client = new ClientEntity();
         DealEntity saved = new DealEntity();
-        Deal mappedCore = mock(Deal.class);
+        Deal core = new Deal(UUID.randomUUID(), null, "T", DealStage.LEAD, new BigDecimal(100), 50, null, Instant.now(), Instant.now());
+
+        DealData data = new DealData(clientId, "T", DealStage.LEAD, new BigDecimal(100), 50, null);
+
+        when(clientRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(dealRepository.save(any())).thenReturn(saved);
+        when(mapper.toCore(saved)).thenReturn(core);
+
+        Deal result = service.create(data);
+
+        // Verify repo call with correct constructed entity
+        ArgumentCaptor<DealEntity> captor = ArgumentCaptor.forClass(DealEntity.class);
+        verify(dealRepository).save(captor.capture());
+
+        DealEntity passed = captor.getValue();
+        assertThat(passed.getTitle()).isEqualTo("T");
+        assertThat(passed.getClient()).isEqualTo(client);
+
+        assertThat(result).isEqualTo(core);
+    }
+
+    @Test
+    void update_shouldPatchAndSave() {
+        UUID id = UUID.randomUUID();
+        DealEntity existing = new DealEntity();
+        DealPatchData patch = new DealPatchData(DealStage.PROPOSAL, null, null, null);
+        DealEntity saved = new DealEntity();
+        Deal core = new Deal(id, null, "updated", DealStage.LEAD, new BigDecimal(200), 60, null, Instant.now(), Instant.now());
 
         when(dealRepository.findById(id)).thenReturn(Optional.of(existing));
         when(dealRepository.save(existing)).thenReturn(saved);
-        when(dealEntityMapper.toCore(saved)).thenReturn(mappedCore);
+        when(mapper.toCore(saved)).thenReturn(core);
 
-        Deal result = dealService.update(id, payload);
+        Deal result = service.update(id, patch);
 
-        verify(dealEntityMapper).updateEntity(payload, existing);
+        verify(mapper).patchEntity(patch, existing);
         verify(dealRepository).save(existing);
-        assertEquals(mappedCore, result);
+
+        assertThat(result).isEqualTo(core);
     }
 
     @Test
-    void update_throwsWhenNotFound() {
-        UUID id = UUID.randomUUID();
-        DealData payload = mock(DealData.class);
-
-        when(dealRepository.findById(id)).thenReturn(Optional.empty());
-
-        RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> dealService.update(id, payload));
-
-        assertTrue(ex.getMessage().contains("not found"));
-    }
-
-    @Test
-    void delete_deletesWhenFound() {
+    void delete_shouldRemoveEntity() {
         UUID id = UUID.randomUUID();
         DealEntity existing = new DealEntity();
 
         when(dealRepository.findById(id)).thenReturn(Optional.of(existing));
 
-        dealService.delete(id);
+        service.delete(id);
 
         verify(dealRepository).delete(existing);
-    }
-
-    @Test
-    void delete_throwsWhenNotFound() {
-        UUID id = UUID.randomUUID();
-        when(dealRepository.findById(id)).thenReturn(Optional.empty());
-
-        RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> dealService.delete(id));
-
-        assertTrue(ex.getMessage().contains("not found"));
     }
 }

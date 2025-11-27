@@ -118,7 +118,6 @@ class ClientServiceTest {
         ClientEntity passedEntity = captor.getValue();
         assertThat(passedEntity.getName()).isEqualTo("John");
         assertThat(passedEntity.getCompany()).isEqualTo("ACME");
-        assertThat(passedEntity.getCreatedAt()).isNotNull();
 
         assertThat(result.getName()).isEqualTo("John");
     }

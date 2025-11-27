@@ -14,7 +14,6 @@ public class Activity {
     private String title;
     private String description;
     private boolean completed;
-    private Client client;
     private Deal deal;
     private Instant createdAt;
     private Instant updatedAt;
