@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: clienttrack-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: clienttrack
+      POSTGRES_USER: clienttrack
+      POSTGRES_PASSWORD: clienttrack
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

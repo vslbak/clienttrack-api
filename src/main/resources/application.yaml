@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: clienttrack-api
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  datasource:
+    url: jdbc:postgresql://localhost:5432/clienttrack
+    username: clienttrack
+    password: ${SPRING_DATASOURCE_PASSWORD:clienttrack}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    properties:
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+      hibernate.format_sql: true
+
+frontend:
+  base:
+    url: ${FRONTEND_BASE:http://localhost:5173}
+
+logging:
+  level:
+    root: INFO

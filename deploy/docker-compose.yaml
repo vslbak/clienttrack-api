@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: clienttrack
+      POSTGRES_USER: clienttrack
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - clienttrack_pgdata:/var/lib/postgresql/data
+    networks:
+      - clienttrack-net
+
+  api:
+    image: vslmpak/clienttrack:api
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/clienttrack
+      SPRING_DATASOURCE_USERNAME: clienttrack
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      FRONTEND_BASE: https://clienttrack.codebshift.dev
+      SERVER_PORT: 8080
+    networks:
+      - clienttrack-net
+
+  web:
+    image: vslmpak/clienttrack:web
+    restart: unless-stopped
+    # If your web image is an nginx serving static assets:
+    expose:
+      - "80"
+    networks:
+      - clienttrack-net
+
+  caddy:
+    image: caddy:2
+    container_name: clienttrack-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - clienttrack-net
+
+networks:
+  clienttrack-net:
+    driver: bridge
+
+volumes:
+  clienttrack_pgdata:
+  caddy_data:
+  caddy_config:

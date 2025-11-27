@@ -1,0 +1,16 @@
+{
+    email vslmpak@gmail.com
+}
+
+clienttrack.codebshift.dev {
+
+    encode gzip
+
+    handle_path /api/* {
+        reverse_proxy api:8080
+    }
+
+    handle {
+        reverse_proxy web:80
+    }
+}

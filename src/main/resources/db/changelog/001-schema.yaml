@@ -1,0 +1,299 @@
+databaseChangeLog:
+
+  # -------------------------------------------------------------
+  # EXTENSIONS
+  # -------------------------------------------------------------
+  - changeSet:
+      id: 000-enable-uuid
+      author: vassilis
+      changes:
+        - sql: CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+  # -------------------------------------------------------------
+  # 001 — CLIENTS
+  # -------------------------------------------------------------
+  - changeSet:
+      id: 001-create-clients
+      author: vassilis
+      changes:
+        - createTable:
+            tableName: clients
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: company
+                  type: VARCHAR(255)
+
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+
+              - column:
+                  name: phone
+                  type: VARCHAR(255)
+
+              - column:
+                  name: industry
+                  type: VARCHAR(255)
+
+              - column:
+                  name: notes
+                  type: TEXT
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+        - createIndex:
+            indexName: idx_clients_name
+            tableName: clients
+            columns:
+              - column:
+                  name: name
+
+  # -------------------------------------------------------------
+  # 002 — DEALS
+  # -------------------------------------------------------------
+  - changeSet:
+      id: 002-create-deals
+      author: vassilis
+      changes:
+        - createTable:
+            tableName: deals
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+
+              - column:
+                  name: client_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: stage
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: value
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: probability
+                  type: INTEGER
+
+              - column:
+                  name: expected_close_date
+                  type: DATE
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+        - addForeignKeyConstraint:
+            baseTableName: deals
+            baseColumnNames: client_id
+            referencedTableName: clients
+            referencedColumnNames: id
+            constraintName: fk_deals_client
+
+        - createIndex:
+            indexName: idx_deals_client
+            tableName: deals
+            columns:
+              - column:
+                  name: client_id
+
+        - createIndex:
+            indexName: idx_deals_stage
+            tableName: deals
+            columns:
+              - column:
+                  name: stage
+
+  # -------------------------------------------------------------
+  # 003 — ACTIVITIES
+  # -------------------------------------------------------------
+  - changeSet:
+      id: 003-create-activities
+      author: vassilis
+      changes:
+        - createTable:
+            tableName: activities
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+
+              - column:
+                  name: deal_id
+                  type: UUID
+
+              - column:
+                  name: type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: description
+                  type: TEXT
+
+              - column:
+                  name: completed
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+        - addForeignKeyConstraint:
+            baseTableName: activities
+            baseColumnNames: deal_id
+            referencedTableName: deals
+            referencedColumnNames: id
+            constraintName: fk_activities_deal
+
+        - createIndex:
+            indexName: idx_activities_deal
+            tableName: activities
+            columns:
+              - column:
+                  name: deal_id
+
+        - createIndex:
+            indexName: idx_activities_type
+            tableName: activities
+            columns:
+              - column:
+                  name: type
+
+  # -------------------------------------------------------------
+  # 004 — PROPOSALS
+  # -------------------------------------------------------------
+  - changeSet:
+      id: 004-create-proposals
+      author: vassilis
+      changes:
+        - createTable:
+            tableName: proposals
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+
+              - column:
+                  name: deal_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: description
+                  type: TEXT
+
+              - column:
+                  name: status
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: pricing_items
+                  type: JSONB
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+        - addForeignKeyConstraint:
+            baseTableName: proposals
+            baseColumnNames: deal_id
+            referencedTableName: deals
+            referencedColumnNames: id
+            constraintName: fk_proposals_deal
+
+        - createIndex:
+            indexName: idx_proposals_deal
+            tableName: proposals
+            columns:
+              - column:
+                  name: deal_id
+
+        - createIndex:
+            indexName: idx_proposals_status
+            tableName: proposals
+            columns:
+              - column:
+                  name: status
